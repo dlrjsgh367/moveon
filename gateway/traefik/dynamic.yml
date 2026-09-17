@@ -1,0 +1,38 @@
+# Traefik 동적 설정(파일 provider). 경로 접두어 -> 서비스로 라우팅.
+# 서비스 주소는 compose 서비스명(도커 내부 DNS)으로 접근한다.
+http:
+  routers:
+    concert:
+      rule: "PathPrefix(`/concerts`)"
+      entryPoints: [web]
+      service: concert
+    auth:
+      rule: "PathPrefix(`/auth`)"
+      entryPoints: [web]
+      service: auth
+    payment:
+      rule: "PathPrefix(`/payment`)"
+      entryPoints: [web]
+      service: payment
+    notification:
+      rule: "PathPrefix(`/notification`)"
+      entryPoints: [web]
+      service: notification
+
+  services:
+    concert:
+      loadBalancer:
+        servers:
+          - url: "http://concert:8080"
+    auth:
+      loadBalancer:
+        servers:
+          - url: "http://auth-member:8080"
+    payment:
+      loadBalancer:
+        servers:
+          - url: "http://payment:8080"
+    notification:
+      loadBalancer:
+        servers:
+          - url: "http://notification:8080"
