@@ -1,0 +1,22 @@
+# secrets & env
+.env
+*.env.local
+
+# java build
+target/
+build/
+.gradle/
+*.jar
+!gradle/wrapper/*.jar
+
+# ide
+.idea/
+*.iml
+.vscode/
+
+# logs & data
+*.log
+data/
+volumes/
+mysql-data/
+redis-data/
