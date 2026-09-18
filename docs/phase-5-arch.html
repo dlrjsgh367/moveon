@@ -28,7 +28,7 @@
     .card-dot.violet { background: #a78bfa; }
     .card-dot.amber { background: #fbbf24; }
     .card-dot.orange { background: #fb923c; }
-    .card-dot.rose { background: #f472b6; }
+    .card-dot.rose { background: #fb7185; }
     .card h3 { font-size: 0.875rem; font-weight: 600; }
     .card ul { list-style: none; color: #94a3b8; font-size: 0.75rem; }
     .card li { margin-bottom: 0.375rem; }
@@ -69,7 +69,7 @@
           <marker id="ah-emerald" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#34d399" /></marker>
           <marker id="ah-violet" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa" /></marker>
           <marker id="ah-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb923c" /></marker>
-          <marker id="ah-rose" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#f472b6" /></marker>
+          <marker id="ah-rose" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fb7185" /></marker>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/></pattern>
         </defs>
 
@@ -92,9 +92,9 @@
         <text x="344" y="300" fill="#34d399" font-size="8">file provider</text>
 
         <!-- Traefik -> dockerproxy -> docker.sock (자동발견) -->
-        <line x1="270" y1="304" x2="270" y2="330" stroke="#f472b6" stroke-width="1.4" marker-end="url(#ah-rose)"/>
-        <text x="276" y="322" fill="#f472b6" font-size="8">컨테이너 자동발견</text>
-        <line x1="270" y1="406" x2="270" y2="430" stroke="#f472b6" stroke-width="1.4" stroke-dasharray="4,4" marker-end="url(#ah-rose)"/>
+        <line x1="270" y1="304" x2="270" y2="330" stroke="#fb7185" stroke-width="1.4" marker-end="url(#ah-rose)"/>
+        <text x="276" y="322" fill="#fb7185" font-size="8">컨테이너 자동발견</text>
+        <line x1="270" y1="406" x2="270" y2="430" stroke="#fb7185" stroke-width="1.4" stroke-dasharray="4,4" marker-end="url(#ah-rose)"/>
 
         <!-- concert -> payment (결제 동기호출) -->
         <line x1="505" y1="188" x2="505" y2="210" stroke="#22d3ee" stroke-width="1.4" marker-end="url(#ah-cyan)"/>
@@ -135,11 +135,11 @@
 
         <!-- ===== docker-socket-proxy ===== -->
         <rect x="200" y="330" width="140" height="76" rx="6" fill="#0f172a"/>
-        <rect x="200" y="330" width="140" height="76" rx="6" fill="rgba(131, 24, 67, 0.35)" stroke="#f472b6" stroke-width="1.5"/>
+        <rect x="200" y="330" width="140" height="76" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
         <text x="270" y="352" fill="white" font-size="10" font-weight="600" text-anchor="middle">docker-socket-proxy</text>
         <text x="270" y="368" fill="#94a3b8" font-size="8" text-anchor="middle">nginx</text>
-        <text x="270" y="384" fill="#f472b6" font-size="8" text-anchor="middle">API 1.24 → 1.44 재작성</text>
-        <text x="270" y="398" fill="#f472b6" font-size="8" text-anchor="middle">Traefik이 데몬에 붙게</text>
+        <text x="270" y="384" fill="#fb7185" font-size="8" text-anchor="middle">API 1.24 → 1.44 재작성</text>
+        <text x="270" y="398" fill="#fb7185" font-size="8" text-anchor="middle">Traefik이 데몬에 붙게</text>
 
         <!-- ===== Docker 데몬 소켓 ===== -->
         <rect x="200" y="430" width="140" height="42" rx="6" fill="#0f172a"/>
@@ -209,7 +209,7 @@
         <text x="532" y="557" fill="#94a3b8" font-size="8">Redis(Streams)</text>
         <line x1="640" y1="553" x2="666" y2="553" stroke="#34d399" stroke-width="1.5" marker-end="url(#ah-emerald)"/>
         <text x="672" y="557" fill="#94a3b8" font-size="8">요청/LB</text>
-        <line x1="748" y1="553" x2="774" y2="553" stroke="#f472b6" stroke-width="1.4" marker-end="url(#ah-rose)"/>
+        <line x1="748" y1="553" x2="774" y2="553" stroke="#fb7185" stroke-width="1.4" marker-end="url(#ah-rose)"/>
         <text x="780" y="557" fill="#94a3b8" font-size="8">자동발견(proxy)</text>
         <line x1="884" y1="553" x2="910" y2="553" stroke="#a78bfa" stroke-width="1.2" stroke-dasharray="4,4" marker-end="url(#ah-violet)"/>
         <text x="916" y="557" fill="#94a3b8" font-size="8">DB</text>
