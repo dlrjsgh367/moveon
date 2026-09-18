@@ -1,20 +1,36 @@
 services:
+  # docker.sock 앞단 프록시(API 버전 재작성). Traefik Docker provider가 이 데몬에 붙게 해준다.
+  dockerproxy:
+    image: nginx:alpine
+    restart: unless-stopped
+    volumes:
+      - ./gateway/dockerproxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    # 포트 비공개(traefik만 내부에서 tcp://dockerproxy:2375 로 접근)
+
   traefik:
     image: traefik:v3.1
     restart: unless-stopped
     command:
-      # 파일 provider: docker.sock 없이 정적 라우팅 파일로 라우팅
+      # file provider: 단일 서비스(auth/payment/notification) 정적 라우팅
       - --providers.file.directory=/etc/traefik/dynamic
       - --providers.file.watch=true
+      # docker provider: concert 는 라벨로 자동발견 + replica 자동 LB (프록시 경유)
+      - --providers.docker=true
+      - --providers.docker.endpoint=tcp://dockerproxy:2375
+      - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
       - --api.dashboard=true
       - --api.insecure=true
       - --ping=true               # 헬스체크용 /ping 활성화
+      - --accesslog=true          # 요청별 백엔드(replica) 확인용
     ports:
       - "80:80"
       - "127.0.0.1:8080:8080"   # 대시보드/API, 로컬(서버 자신)에서만 접근
     volumes:
       - ./gateway/traefik:/etc/traefik/dynamic:ro
+    depends_on:
+      - dockerproxy
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 10s
@@ -52,6 +68,8 @@ services:
   concert:
     build: ./services/concert
     restart: unless-stopped
+    deploy:
+      replicas: 2            # 무상태 API 이중화(Traefik이 두 replica로 자동 LB)
     environment:
       DB_HOST: mysql
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
@@ -69,6 +87,15 @@ services:
       timeout: 5s
       retries: 5
       start_period: 40s
+    labels:
+      # Docker provider 라벨: replica 를 몇 개로 늘리든 Traefik 이 자동으로 붙여 LB
+      - traefik.enable=true
+      - traefik.http.routers.concert.rule=PathPrefix(`/concerts`)
+      - traefik.http.routers.concert.entrypoints=web
+      - traefik.http.services.concert.loadbalancer.server.port=8080
+      # 액티브 헬스체크: 죽은 replica 는 로테이션에서 빠진다(무중단)
+      - traefik.http.services.concert.loadbalancer.healthcheck.path=/concerts
+      - traefik.http.services.concert.loadbalancer.healthcheck.interval=10s
 
   auth-member:
     build: ./services/auth-member

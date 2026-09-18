@@ -2,10 +2,7 @@
 # 서비스 주소는 compose 서비스명(도커 내부 DNS)으로 접근한다.
 http:
   routers:
-    concert:
-      rule: "PathPrefix(`/concerts`)"
-      entryPoints: [web]
-      service: concert
+    # concert 는 docker provider 라벨로 라우팅(replica 자동 LB). 여기선 뺀다.
     auth:
       rule: "PathPrefix(`/auth`)"
       entryPoints: [web]
@@ -20,10 +17,6 @@ http:
       service: notification
 
   services:
-    concert:
-      loadBalancer:
-        servers:
-          - url: "http://concert:8080"
     auth:
       loadBalancer:
         servers:
