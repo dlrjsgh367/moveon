@@ -1,4 +1,19 @@
 services:
+  traefik:
+    image: traefik:v3.1
+    command:
+      # 파일 provider: docker.sock 없이 정적 라우팅 파일로 라우팅
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+      - --entrypoints.web.address=:80
+      - --api.dashboard=true
+      - --api.insecure=true
+    ports:
+      - "80:80"
+      - "127.0.0.1:8080:8080"   # 대시보드/API, 로컬(서버 자신)에서만 접근
+    volumes:
+      - ./gateway/traefik:/etc/traefik/dynamic:ro
+
   mysql:
     image: mysql:8.4
     environment:
@@ -11,15 +26,45 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    # 포트는 외부에 열지 않는다(컨테이너 네트워크 내부에서만 접근)
+    # 포트 비공개(컨테이너 네트워크 내부에서만 접근)
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    # 포트 비공개. 다음 Phase의 Streams용. 이번엔 기동만.
 
   concert:
     build: ./services/concert
     environment:
       DB_HOST: mysql
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-    ports:
-      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  auth-member:
+    build: ./services/auth-member
+    environment:
+      DB_HOST: mysql
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  payment:
+    build: ./services/payment
+    environment:
+      DB_HOST: mysql
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  notification:
+    build: ./services/notification
+    environment:
+      DB_HOST: mysql
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     depends_on:
       mysql:
         condition: service_healthy
