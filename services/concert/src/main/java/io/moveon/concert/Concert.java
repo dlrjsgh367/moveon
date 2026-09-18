@@ -22,6 +22,12 @@ public class Concert {
     protected Concert() {
     }
 
+    public Concert(String title, String venue, LocalDate performDate) {
+        this.title = title;
+        this.venue = venue;
+        this.performDate = performDate;
+    }
+
     public Long getId() {
         return id;
     }
