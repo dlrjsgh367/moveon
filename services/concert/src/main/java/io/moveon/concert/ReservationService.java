@@ -32,4 +32,23 @@ public class ReservationService {
         }
         return seats.findByConcertIdAndSeatNo(concertId, seatNo).orElseThrow();
     }
+
+    // 결제 전 검증: 본인이 잡은 HELD 좌석인지. 아니면 404/409.
+    public Seat requireOwnedHeld(Long reservationId, Long memberId) {
+        Seat seat = seats.findById(reservationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "예매 없음"));
+        if (!memberId.equals(seat.getMemberId()) || !"HELD".equals(seat.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "확정 가능한 선점이 아님");
+        }
+        return seat;
+    }
+
+    // 결제 성공 후 확정. 그 사이 만료됐거나 상태가 바뀌면 0행 -> 409.
+    @Transactional
+    public void confirm(Long reservationId, Long memberId) {
+        int updated = seats.confirm(reservationId, memberId, LocalDateTime.now());
+        if (updated == 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "선점이 만료되어 확정 불가");
+        }
+    }
 }

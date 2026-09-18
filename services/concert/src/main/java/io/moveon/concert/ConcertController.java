@@ -21,13 +21,18 @@ public class ConcertController {
     private final SeatRepository seats;
     private final ReservationService reservations;
     private final JwtVerifier jwt;
+    private final PaymentClient paymentClient;
+    private final EventPublisher publisher;
 
     public ConcertController(ConcertRepository concerts, SeatRepository seats,
-                             ReservationService reservations, JwtVerifier jwt) {
+                             ReservationService reservations, JwtVerifier jwt,
+                             PaymentClient paymentClient, EventPublisher publisher) {
         this.concerts = concerts;
         this.seats = seats;
         this.reservations = reservations;
         this.jwt = jwt;
+        this.paymentClient = paymentClient;
+        this.publisher = publisher;
     }
 
     public record RegisterRequest(String title, String venue, LocalDate performDate) {
@@ -38,6 +43,9 @@ public class ConcertController {
 
     public record ReservationResponse(Long reservationId, Long concertId, String seatNo,
                                       String status, LocalDateTime expiresAt) {
+    }
+
+    public record PayRequest(Integer amount, String outcome) {
     }
 
     @GetMapping("/concerts")
@@ -80,5 +88,27 @@ public class ConcertController {
         Seat held = reservations.hold(id, req.seatNo(), memberId);
         return new ReservationResponse(held.getId(), held.getConcertId(), held.getSeatNo(),
                 held.getStatus(), held.getExpiresAt());
+    }
+
+    // 결제 후 확정. payment 동기 호출 -> 성공이면 확정 + 이벤트 발행, 실패면 좌석 유지(HELD).
+    @PostMapping("/concerts/reservations/{reservationId}/pay")
+    public Map<String, Object> pay(@PathVariable Long reservationId,
+                                   @RequestBody(required = false) PayRequest req,
+                                   @RequestHeader(value = "Authorization", required = false) String auth) {
+        Long memberId = jwt.memberId(auth);
+        Seat seat = reservations.requireOwnedHeld(reservationId, memberId);
+        Integer amount = req == null ? null : req.amount();
+        String outcome = req == null ? null : req.outcome();
+
+        String paid = paymentClient.pay(reservationId, amount, outcome);
+        if (!"SUCCESS".equals(paid)) {
+            // 결제 실패: 좌석은 HELD 로 유지되어 유저가 재시도 가능.
+            return Map.of("reservationId", reservationId, "status", "PAYMENT_FAILED",
+                    "seatStatus", "HELD");
+        }
+        reservations.confirm(reservationId, memberId);
+        publisher.publishConfirmed(reservationId, memberId, seat.getConcertId(), seat.getSeatNo());
+        return Map.of("reservationId", reservationId, "status", "CONFIRMED",
+                "seatNo", seat.getSeatNo());
     }
 }
