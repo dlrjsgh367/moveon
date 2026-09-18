@@ -16,5 +16,6 @@ repositories { mavenCentral() }
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'  // Streams 소비(소비자 그룹)
     runtimeOnly 'com.mysql:mysql-connector-j'
 }

@@ -71,6 +71,8 @@ services:
     environment:
       DB_HOST: mysql
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     depends_on:
       mysql:
         condition: service_healthy
