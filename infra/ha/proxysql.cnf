@@ -1,0 +1,39 @@
+# ProxySQL 초기 설정(빈 datadir 최초 1회만 읽힘). 시크릿은 넣지 않는다.
+# mysql_users / monitor 비밀번호는 기동 후 admin(6032)에서 .env 값으로 주입한다.
+datadir="/var/lib/proxysql"
+
+admin_variables=
+{
+    admin_credentials="admin:admin"   # 로컬 내부 전용 admin 계정
+    mysql_ifaces="0.0.0.0:6032"
+}
+
+mysql_variables=
+{
+    threads=2
+    interfaces="0.0.0.0:3306"         # 앱이 기존 :3306 JDBC 그대로 쓰게 3306으로 리슨
+    monitor_read_only_timeout=1500
+}
+
+# 3노드를 writer 후보 그룹(10)에 등록. ProxySQL이 GR 상태를 보고 PRIMARY/replica로 분류한다.
+mysql_servers=
+(
+    { address="mysql-1", port=3306, hostgroup=10 },
+    { address="mysql-2", port=3306, hostgroup=10 },
+    { address="mysql-3", port=3306, hostgroup=10 }
+)
+
+# Group Replication 인식: PRIMARY를 writer(10)로, 나머지를 reader(30)로. 페일오버 시 자동 재배치.
+mysql_group_replication_hostgroups=
+(
+    {
+        writer_hostgroup=10
+        backup_writer_hostgroup=20
+        reader_hostgroup=30
+        offline_hostgroup=40
+        active=1
+        max_writers=1
+        writer_is_also_reader=1
+        max_transactions_behind=100
+    }
+)

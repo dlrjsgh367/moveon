@@ -1,0 +1,107 @@
+# Phase 6: MySQL Group Replication 3노드 HA + ProxySQL(라우터 역할) + concert 1대.
+# 기존 docker-compose.yml(단일 mysql)과 별개 스택. 실행:
+#   docker compose -f docker-compose.ha.yml -p moveon-ha up -d
+# arm64 네이티브: mysql:8.4(GR 내장) + proxysql/proxysql(arm64). Oracle mysqlsh/Router는 amd64 전용이라 안 씀.
+# command 는 반드시 리스트로(폴디드 문자열이면 엔트리포인트가 DB 초기화를 건너뛴다).
+
+x-mysql-common: &mysql-common
+  image: mysql:8.4
+  restart: unless-stopped
+  environment:
+    MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    MYSQL_ROOT_HOST: '%'          # 다른 노드/ProxySQL/앱이 root로 접속(학습용)
+  healthcheck:
+    test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+    interval: 5s
+    timeout: 5s
+    retries: 20
+
+services:
+  mysql-1:
+    <<: *mysql-common
+    command:
+      - "--server-id=1"
+      - "--report-host=mysql-1"
+      - "--log-bin=binlog"
+      - "--gtid-mode=ON"
+      - "--enforce-gtid-consistency=ON"
+      - "--log-replica-updates=ON"
+      - "--plugin-load-add=group_replication.so"
+      - "--loose-group-replication-group-name=aaaaaaaa-1111-2222-3333-444444444444"
+      - "--loose-group-replication-start-on-boot=OFF"
+      - "--loose-group-replication-local-address=mysql-1:33061"
+      - "--loose-group-replication-group-seeds=mysql-1:33061,mysql-2:33061,mysql-3:33061"
+      - "--loose-group-replication-single-primary-mode=ON"
+      - "--loose-group-replication-enforce-update-everywhere-checks=OFF"
+    volumes:
+      - ha-mysql-1:/var/lib/mysql
+
+  mysql-2:
+    <<: *mysql-common
+    command:
+      - "--server-id=2"
+      - "--report-host=mysql-2"
+      - "--log-bin=binlog"
+      - "--gtid-mode=ON"
+      - "--enforce-gtid-consistency=ON"
+      - "--log-replica-updates=ON"
+      - "--plugin-load-add=group_replication.so"
+      - "--loose-group-replication-group-name=aaaaaaaa-1111-2222-3333-444444444444"
+      - "--loose-group-replication-start-on-boot=OFF"
+      - "--loose-group-replication-local-address=mysql-2:33061"
+      - "--loose-group-replication-group-seeds=mysql-1:33061,mysql-2:33061,mysql-3:33061"
+      - "--loose-group-replication-single-primary-mode=ON"
+      - "--loose-group-replication-enforce-update-everywhere-checks=OFF"
+    volumes:
+      - ha-mysql-2:/var/lib/mysql
+
+  mysql-3:
+    <<: *mysql-common
+    command:
+      - "--server-id=3"
+      - "--report-host=mysql-3"
+      - "--log-bin=binlog"
+      - "--gtid-mode=ON"
+      - "--enforce-gtid-consistency=ON"
+      - "--log-replica-updates=ON"
+      - "--plugin-load-add=group_replication.so"
+      - "--loose-group-replication-group-name=aaaaaaaa-1111-2222-3333-444444444444"
+      - "--loose-group-replication-start-on-boot=OFF"
+      - "--loose-group-replication-local-address=mysql-3:33061"
+      - "--loose-group-replication-group-seeds=mysql-1:33061,mysql-2:33061,mysql-3:33061"
+      - "--loose-group-replication-single-primary-mode=ON"
+      - "--loose-group-replication-enforce-update-everywhere-checks=OFF"
+    volumes:
+      - ha-mysql-3:/var/lib/mysql
+
+  # 라우터 역할: GR 상태를 읽어 PRIMARY로 쓰기를 보냄. 페일오버 시 자동 전환.
+  # app이 기존 JDBC(:3306)를 그대로 쓰게 ProxySQL도 3306으로 리슨.
+  proxysql:
+    image: proxysql/proxysql:latest
+    restart: unless-stopped
+    volumes:
+      - ./infra/ha/proxysql.cnf:/etc/proxysql.cnf:ro
+      - ha-proxysql:/var/lib/proxysql
+    depends_on:
+      - mysql-1
+      - mysql-2
+      - mysql-3
+
+  # 앱: DB를 ProxySQL(단일 쓰기 문)로만 본다. 등록(POST /concerts)이 쓰기 검증.
+  concert:
+    image: moveon-concert:latest
+    restart: unless-stopped
+    environment:
+      DB_HOST: proxysql
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "127.0.0.1:8090:8080"   # 로컬 테스트용
+    depends_on:
+      - proxysql
+
+volumes:
+  ha-mysql-1:
+  ha-mysql-2:
+  ha-mysql-3:
+  ha-proxysql:
